@@ -1,0 +1,46 @@
+name: Bug report
+description: Report missing vehicle parts or another issue with the patch.
+title: "[Bug] "
+body:
+  - type: markdown
+    attributes:
+      value: "Thanks for reporting an issue. Please provide the details below. You can attach console.txt and screenshots directly to the text fields."
+  - type: input
+    id: vehicle
+    attributes:
+      label: Vehicle
+      description: Vehicle name and a link to its Steam Workshop page.
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: What happens?
+      description: Which parts are affected? Does it happen near the camera edge, directly in front of you, or inside the cabin? Include steps to reproduce.
+    validations:
+      required: true
+  - type: dropdown
+    id: approval
+    attributes:
+      label: Is this patch allowed in ZombieBuddy?
+      options:
+        - "Yes"
+        - "No"
+        - "Not sure"
+    validations:
+      required: true
+  - type: textarea
+    id: log
+    attributes:
+      label: Game log
+      description: Attach Zomboid/console.txt after reproducing the issue, or share an accessible Pastebin or Google Drive link. Review the log for personal information before uploading.
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots or video
+      description: If possible, show the affected parts and camera angle.
+  - type: textarea
+    id: extra
+    attributes:
+      label: Additional information
+      description: Mention other vehicle or rendering mods and anything else that may help.
