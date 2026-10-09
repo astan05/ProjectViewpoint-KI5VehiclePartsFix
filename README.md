@@ -1,6 +1,6 @@
 # Project Viewpoint - KI5 Vehicle Parts Fix
 
-Version **1.0**. A client-side patch for disappearing KI5 vehicle parts near the edges of the camera in Project Viewpoint.
+Version **1.1**. A client-side patch for disappearing KI5 vehicle parts near the edges of the camera in Project Viewpoint.
 
 ![Exterior comparison](before-after-exterior.png)
 ![Interior comparison](before-after-interior.png)
@@ -32,11 +32,12 @@ Install JDK 25 and put its tools on PATH. Dependencies are read from your own in
 
 The command builds `build/ViewpointVehiclePartsGuard.jar` and runs the guard checks and ByteBuddy binding check. These offline checks do not replace in-game testing.
 
-For development, replace the JAR in your local patch folder at `42/media/java/client/ViewpointVehiclePartsGuard.jar` with the built JAR. Fully restart the game. Do not enable local and Workshop copies at the same time.
+For development, replace the JAR in your local patch folder at `42/media/java/client/ViewpointVehiclePartsGuard.jar` with the built JAR. Copy source/lua/client/VPVParts_PorscheRoof.lua into 42/media/lua/client/ in the same mod folder. Enable the mod in your save and fully restart the game. Do not enable local and Workshop copies at the same time.
 
 ## Source layout
 
 - `source/vpvparts`: Java entry point, renderer hook and visibility guard.
+- `source/lua/client`: Porsche Turbo interior roof compatibility fix.
 - `source/GuardHarness.java`: guard behaviour checks.
 - `source/AdviceHarness.java`: offline hook binding check.
 
@@ -48,3 +49,7 @@ Disable the patch and fully restart the game, then unsubscribe or remove the loc
 ## License
 
 Original patch code is available under the [MIT License](LICENSE). This is an independent community patch. KI5, DAMN, Viewpoint, ZombieBuddy and Project Zomboid assets and dependencies retain their respective licenses and are not bundled.
+
+## Update 1.1
+
+Restores the interior roof in the KI5 1982 Porsche 911 Turbo by referencing KI5's existing roof model. No KI5 assets are bundled. The Lua addition must also be enabled for the save; approving the Java component alone only enables the renderer fix. Restart after updating. Verified in game. Other missing surfaces or parts may require separate investigation.
