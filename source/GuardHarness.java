@@ -24,7 +24,9 @@ public final class GuardHarness {
         VehicleSubModelInstance part=(VehicleSubModelInstance)U.allocateInstance(VehicleSubModelInstance.class);
         part.parent=root; part.object=(BaseVehicle)U.allocateInstance(BaseVehicle.class);
         ModelInstance[] list={root,part};
-        float[] v=new float[120]; v[84]=2f; v[87]=0.1f;
+        Field strideField=draws.getClass().getDeclaredField("VALUES"); strideField.setAccessible(true);
+        int stride=strideField.getInt(null); int bounds=stride+24;
+        float[] v=new float[stride*2]; v[bounds]=2f; v[bounds+3]=0.1f;
         int[] flags={1,1};
         put(draws,"instances",new ModelInstance[2]); put(draws,"keys",list); put(draws,"values",v); put(draws,"flags",flags);
         FrustumIntersection fr=new FrustumIntersection(new Matrix4f());
@@ -36,26 +38,47 @@ public final class GuardHarness {
         part.parent=null; check(!Guard.shown(pass,draws,1,false),"root excluded"); part.parent=root;
         part.object=null; check(!Guard.shown(pass,draws,1,false),"recycled instance excluded");
         part.object=(BaseVehicle)U.allocateInstance(BaseVehicle.class);
-        v[84]=100f; check(!Guard.shown(pass,draws,1,false),"far part still culled");
-        v[84]=Float.NaN; check(!Guard.shown(pass,draws,1,false),"invalid bounds unchanged");
+        v[bounds]=100f; check(!Guard.shown(pass,draws,1,false),"far part still culled");
+        v[bounds]=Float.NaN; check(!Guard.shown(pass,draws,1,false),"invalid bounds unchanged");
         check(Guard.shown(pass,draws,1,true),"accepted draw unchanged");
         list[1]=root; check(!Guard.shown(pass,draws,1,false),"nonvehicle unchanged");
         list[1]=part;
 
-        v[84]=-8; v[85]=0; v[86]=0; v[87]=.1f;
+        v[bounds]=-8; v[bounds+1]=0; v[bounds+2]=0; v[bounds+3]=.1f;
         check(Guard.shown(pass,draws,1,false),"near rejected part keeps bypass behaviour");
-        v[84]=100;
+        v[bounds]=100;
         check(!Guard.shown(pass,draws,1,false),"adaptive far part remains culled");
-        flags[1]=0; v[84]=0;
+        flags[1]=0; v[bounds]=0;
         check(!Guard.shown(pass,draws,1,false),"adaptive preserves colour flags");
-        flags[1]=1; v[84]=Float.NaN;
+        flags[1]=1; v[bounds]=Float.NaN;
         check(!Guard.shown(pass,draws,1,false),"adaptive preserves invalid bounds");
         check(Guard.near(12.05f,0,0,.1f,12),"sphere overlap included");
         check(!Guard.near(12.2f,0,0,.1f,12),"outside near range excluded");
-        v[84]=13f; v[87]=.1f; put(pass,"frustum",new FrustumIntersection(new Matrix4f().translation(-9f,0,0)));
+        v[bounds]=13f; v[bounds+3]=.1f; put(pass,"frustum",new FrustumIntersection(new Matrix4f().translation(-9f,0,0)));
         check(Guard.shown(pass,draws,1,false),"far adaptive sphere expansion used");
-        v[84]=15f; check(!Guard.shown(pass,draws,1,false),"beyond expanded frustum stays culled");
-        System.out.println("PASS: 17 guard assertions with installed Viewpoint and PZ classes");
+        v[bounds]=15f; check(!Guard.shown(pass,draws,1,false),"beyond expanded frustum stays culled");
+        v[bounds]=2f; v[bounds+1]=0;v[bounds+2]=0;v[bounds+3]=.1f;
+        check(Guard.shown(pass,draws,1,false),"compat fixture rescued");
+        check(Guard.preserveRollingRescue(pass,draws,1,true,false),"Rolling Hills cannot overwrite our rescue");
+        check(!Guard.preserveRollingRescue(pass,draws,1,true,false),"rescue consumed once");
+        Guard.shown(pass,draws,1,false);
+        check(!Guard.preserveRollingRescue(pass,new Object(),1,true,false),"different frame not rescued");
+        Guard.shown(pass,draws,1,false);
+        check(!Guard.preserveRollingRescue(pass,draws,0,true,false),"different draw not rescued");
+        Guard.shown(pass,draws,1,false); Guard.shown(pass,draws,0,true);
+        check(!Guard.preserveRollingRescue(pass,draws,1,true,false),"subsequent accepted call clears stale rescue");
+        Guard.shown(pass,draws,1,true);
+        check(!Guard.preserveRollingRescue(pass,draws,1,true,false),"originally visible model not a rescue");
+        flags[1]=0; Guard.shown(pass,draws,1,false);
+        check(!Guard.preserveRollingRescue(pass,draws,1,true,false),"no-colour result not rescued"); flags[1]=1;
+        check(!Guard.preserveRollingRescue(pass,draws,1,false,false),"Rolling Hills first has no pending rescue");
+        check(Guard.shown(pass,draws,1,false),"reverse hook order still rescued by main guard");
+        final boolean[] otherThread={true};
+        Thread worker=new Thread(()->otherThread[0]=Guard.preserveRollingRescue(pass,draws,1,true,false));
+        worker.start();worker.join();check(!otherThread[0],"rescue isolated by thread");
+        check(Guard.preserveRollingRescue(pass,draws,1,true,false),"origin thread retains its rescue");
+        check(Guard.preserveRollingRescue(pass,draws,1,false,true),"Rolling Hills accepted result retained");
+        System.out.println("PASS: adaptive guard and Rolling Hills compatibility assertions");
     }
 }
 

@@ -1,6 +1,6 @@
 # Project Viewpoint - KI5 Vehicle Parts Fix
 
-Version **1.1**. A client-side patch for disappearing KI5 vehicle parts near the edges of the camera in Project Viewpoint.
+Version **1.3**. A client-side patch for disappearing KI5 vehicle parts near the edges of the camera in Project Viewpoint.
 
 ![Exterior comparison](before-after-exterior.png)
 ![Interior comparison](before-after-interior.png)
@@ -53,3 +53,9 @@ Original patch code is available under the [MIT License](LICENSE). This is an in
 ## Update 1.1
 
 Restores the interior roof in the KI5 1982 Porsche 911 Turbo by referencing KI5's existing roof model. No KI5 assets are bundled. The Lua addition must also be enabled for the save; approving the Java component alone only enables the renderer fix. Restart after updating. Verified in game. Other missing surfaces or parts may require separate investigation.
+
+## Update 1.2
+
+Adds compatibility with Viewpoint Rolling Hills: its visibility check no longer cancels vehicle-part visibility restored by this patch. Rolling Hills is optional; the patch still works without it. The compatibility hook only preserves this patch's decision for the same vehicle part and draw call.
+
+To also check the optional Rolling Hills hook, add `-RollingHillsJar '<path to ViewpointRollingHills.jar>'` to the build command.

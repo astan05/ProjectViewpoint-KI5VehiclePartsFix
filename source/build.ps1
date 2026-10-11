@@ -1,6 +1,7 @@
 param(
     [Parameter(Mandatory=$true)][string]$GameDir,
     [Parameter(Mandatory=$true)][string]$ViewpointJar,
+    [string]$RollingHillsJar,
     [switch]$Test
 )
 $ErrorActionPreference='Stop'
@@ -20,6 +21,7 @@ if ($LASTEXITCODE -ne 0) { throw 'javac failed' }
 if ($LASTEXITCODE -ne 0) { throw 'jar failed' }
 if ($Test) {
     $compileClasspath=$pzJar+';'+$ViewpointJar+';'+$zbJar
+    if ($RollingHillsJar) { $compileClasspath+=';'+$RollingHillsJar }
     & javac -encoding UTF-8 -cp $compileClasspath -d $testDir $sourceFiles (Join-Path $PSScriptRoot 'GuardHarness.java') (Join-Path $PSScriptRoot 'AdviceHarness.java')
     if ($LASTEXITCODE -ne 0) { throw 'test compilation failed' }
     & java --sun-misc-unsafe-memory-access=allow -cp ($testDir+';'+$compileClasspath) GuardHarness

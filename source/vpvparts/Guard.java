@@ -7,18 +7,38 @@ import java.lang.invoke.MethodType;
 
 /** Fixed adaptive frustum guard. No settings, counters, disk access or network access. */
 public final class Guard {
+    // Only preserve a rescue from this thread's immediately preceding shown call.
+    private static final ThreadLocal<Rescue> lastRescue=ThreadLocal.withInitial(Rescue::new);
+    private static volatile boolean rollingReported;
+    private static final class Rescue {
+        Object pass,draws; int index=-1;
+        void clear() { pass=null; draws=null; index=-1; }
+        boolean remember(Object p,Object d,int i) { pass=p; draws=d; index=i; return true; }
+    }
+    public static boolean preserveRollingRescue(Object pass,Object draws,int index,boolean incoming,boolean result) {
+        Rescue rescue=lastRescue.get();
+        boolean restore=!disabled && !result && incoming && rescue.pass==pass && rescue.draws==draws && rescue.index==index;
+        rescue.clear();
+        if (restore && !rollingReported) reportRolling();
+        return result || restore;
+    }
+    private static synchronized void reportRolling() {
+        if (!rollingReported) System.out.println("[VPVParts] Rolling Hills compatibility active; vehicle-part rescue preserved");
+        rollingReported=true;
+    }
     private static final float PADDING=4f;
     private static final float NEAR_RANGE=12f;
     private static volatile boolean disabled;
     private static volatile boolean ready;
     private static volatile boolean started;
     private static Field keys, values, flags, parent, owner, frustum;
+    private static int valueStride, sphereOffset;
     private static MethodHandle sphere;
     private static Class<?> submodel, vehicle;
 
     public static synchronized void start() {
         if (started) return;
-        System.out.println("[VPVParts] 1.0 loaded; fixed adaptive guard (near=12, padding=4)");
+        System.out.println("[VPVParts] 1.3 loaded; adaptive guard with Rolling Hills compatibility");
         started=true;
     }
 
@@ -33,7 +53,9 @@ public final class Guard {
             !pass.getClass().getName().equals("viewpoint.render.ModelPass"))
             throw new IllegalStateException("unexpected target");
         Class<?> dc=draws.getClass();
-        if (field(dc,"VALUES").getInt(null)!=60 || field(dc,"SPHERE").getInt(null)!=24 ||
+        valueStride=field(dc,"VALUES").getInt(null);
+        sphereOffset=field(dc,"SPHERE").getInt(null);
+        if ((valueStride!=60 && valueStride!=68) || sphereOffset!=24 ||
             field(dc,"COLOUR").getInt(null)!=1) throw new IllegalStateException("unsupported ModelDraws layout");
         keys=field(dc,"keys"); values=field(dc,"values"); flags=field(dc,"flags");
         Class<?> mi=Class.forName("zombie.core.skinnedmodel.model.ModelInstance",false,loader);
@@ -49,6 +71,8 @@ public final class Guard {
     }
 
     public static boolean shown(Object pass,Object draws,int index,boolean original) {
+        Rescue rescue=lastRescue.get();
+        rescue.clear();
         if (original || disabled) return original;
         if (!started) start();
         try {
@@ -62,12 +86,13 @@ public final class Guard {
             int[] fs=(int[])flags.get(draws);
             if ((fs[index]&1)==0) return false;
             float[] v=(float[])values.get(draws);
-            int b=Math.addExact(Math.multiplyExact(index,60),24);
+            int b=Math.addExact(Math.multiplyExact(index,valueStride),sphereOffset);
             float x=v[b],y=v[b+1],z=v[b+2],r=v[b+3];
             if (!Float.isFinite(x) || !Float.isFinite(y) || !Float.isFinite(z) || !Float.isFinite(r) || r<0)
                 return false;
-            if (near(x,y,z,r,NEAR_RANGE)) return true;
-            return (boolean)sphere.invokeExact((Object)frustum.get(pass),x,y,z,r+PADDING);
+            if (near(x,y,z,r,NEAR_RANGE)) return rescue.remember(pass,draws,index);
+            boolean visible=(boolean)sphere.invokeExact((Object)frustum.get(pass),x,y,z,r+PADDING);
+            return visible && rescue.remember(pass,draws,index);
         } catch (Throwable e) {
             disable(e);
             return original;

@@ -38,12 +38,19 @@ public final class AdviceHarness {
     }
     public static void main(String[] args) throws Exception {
         String[][] targets={
-            {"vpvparts.Patches$Shown","viewpoint.render.ModelPass","shown"}
+            {"vpvparts.Patches$Shown","viewpoint.render.ModelPass","shown"},
+            {"vpvparts.Patches$RollingHillsShown","wt.rollinghills.VehiclePose","shown"}
 
         };
         for(String[] t:targets) {
+            Class<?> target;
+            try { target=Class.forName(t[1]); } catch (ClassNotFoundException e) {
+                if (!t[1].equals("wt.rollinghills.VehiclePose")) throw e;
+                System.out.println("SKIP: optional Rolling Hills binding; supply -RollingHillsJar to test it");
+                continue;
+            }
             Class<?> advice=transform(t[0]);
-            byte[] changed=new ByteBuddy().redefine(Class.forName(t[1]))
+            byte[] changed=new ByteBuddy().redefine(target)
                 .visit(Advice.to(advice).on(named(t[2]))).make().getBytes();
             if(changed.length==0) throw new AssertionError(t[1]);
             System.out.println("PASS: offline advice binding "+t[1]+"."+t[2]);
